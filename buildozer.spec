@@ -1,13 +1,13 @@
 [app]
 
 # Номи барнома
-title = Magoza POS
+title = Осон фуруш 
 
 # Номи пакет
 package.name = magozapos
 
 # Домен
-package.domain = org.mafoza
+package.domain = org.magoza
 
 # Папкаи код
 source.dir = .
