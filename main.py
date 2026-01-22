@@ -1,35 +1,39 @@
 import os
-import time
 import sqlite3
 import datetime
 import hashlib
 import platform
 from flask import Flask, render_template_string, request, redirect, session
 
+# Танзимоти роҳ (Path) барои Android
+# Ин қисм муҳим аст, то барнома базаи маълумотро дар дохили APK гум накунад
+base_dir = os.path.dirname(os.path.abspath(__file__))
+DB = os.path.join(base_dir, 'dukon_v7.db')
+CHEK_FOLDER = os.path.join(base_dir, 'cheks')
+
 app = Flask(__name__)
 app.secret_key = 'mafoza_ultimate_secure_2026'
-DB = 'dukon_v7.db'
-CHEK_FOLDER = 'cheks'
+
+# Сохтани папкаи чекҳо агар набошад
+if not os.path.exists(CHEK_FOLDER):
+    os.makedirs(CHEK_FOLDER)
 
 # --- БАХШИ МУҲОФИЗАТ (LICENSE SYSTEM) ---
 def get_device_id():
-    # Сохтани ID-и ягона дар асоси маълумоти телефон
+    # ID-и ягона дар асоси телефон
     device_info = platform.node() + platform.machine() + "MAFOZA_SECURE_v7"
     return hashlib.sha256(device_info.encode()).hexdigest()[:8].upper()
 
-# ТАНЗИМОТИ ЛИЦЕНЗИЯ (ИНРО ИВАЗ КУНЕД)
-AUTHORIZED_ID = "322C3062"  # ID-и телефонатонро инҷо гузоред
-EXPIRY_DATE = "2027-01-22"  # Мӯҳлати истифода (1 сол)
-
-if not os.path.exists(CHEK_FOLDER):
-    os.makedirs(CHEK_FOLDER)
+# ТАНЗИМОТИ ЛИЦЕНЗИЯ
+AUTHORIZED_ID = "322C3062"  # ID-и телефони муштарӣ
+EXPIRY_DATE = "2027-01-22"  # То кадом вақт кор мекунад
 
 def get_db():
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
     return conn
 
-# Эҷоди база
+# Эҷоди базаи маълумот
 with get_db() as conn:
     conn.execute('CREATE TABLE IF NOT EXISTS ambor (barcode TEXT PRIMARY KEY, nom TEXT, narh REAL, miqdor INTEGER)')
     conn.execute('CREATE TABLE IF NOT EXISTS furushot (id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT, narh REAL, sana TEXT)')
@@ -41,14 +45,14 @@ HTML_BASE = '''
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: 'Courier New', monospace; background: #f0f2f5; padding: 10px; text-align: center; }
+        body { font-family: sans-serif; background: #f0f2f5; padding: 10px; text-align: center; }
         .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 15px; }
-        .btn { display: block; width: 100%; padding: 15px; margin: 8px 0; border: none; border-radius: 8px; color: white; font-weight: bold; text-decoration: none; cursor: pointer; font-size: 16px; text-align: center; }
+        .btn { display: block; width: 100%; padding: 15px; margin: 8px 0; border: none; border-radius: 8px; color: white; font-weight: bold; text-decoration: none; cursor: pointer; font-size: 16px; }
         .b-g { background: #27ae60; } .b-b { background: #2980b9; } .b-r { background: #c0392b; } .b-o { background: #e67e22; } .b-nfc { background: #00d2d3; }
         input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
-        table { width: 100%; border-collapse: collapse; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border-bottom: 1px dashed #ccc; padding: 10px; text-align: left; }
-        .receipt { border: 2px solid #000; padding: 20px; background: #fff; max-width: 320px; margin: auto; text-align: left; }
+        .receipt { border: 2px solid #000; padding: 20px; background: #fff; max-width: 320px; margin: auto; text-align: left; font-family: monospace; }
     </style>
 </head>
 <body>
@@ -59,7 +63,7 @@ HTML_BASE = '''
 
 @app.before_request
 def security_check():
-    if request.endpoint == 'blocked': return
+    if request.endpoint in ['blocked', 'static']: return
     my_id = get_device_id()
     today = datetime.date.today().isoformat()
     if my_id != AUTHORIZED_ID or today > EXPIRY_DATE:
@@ -71,11 +75,8 @@ def blocked():
     return f'''
     <div style="text-align:center; padding:50px; font-family:sans-serif;">
         <h1 style="color:red;">🚫 ДАСТРАСӢ МАҲДУД АСТ</h1>
-        <div style="background:#fff; padding:20px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
-            <p>Барои фаъолсозӣ ин ID-ро ба соҳиби барнома фиристед:</p>
-            <h2 style="background:#eee; padding:10px; color:#333;">{my_id}</h2>
-            <p>Мӯҳлати иҷозатнома: {EXPIRY_DATE}</p>
-        </div>
+        <p>ID-и ин телефон: <b>{my_id}</b></p>
+        <p>Мӯҳлати иҷозатнома: {EXPIRY_DATE}</p>
     </div>'''
 
 @app.route('/')
@@ -109,7 +110,7 @@ def kassa():
                     found = True; break
             if not found: cart.append({'barcode': barcode, 'nom': t['nom'], 'narh': t['narh'], 'qty': 1})
             session['cart'] = cart
-        else: msg = "❌ Мол ёфт нашуд!"
+        else: msg = "❌ Мол нест!"
 
     total = sum(i['narh'] * i['qty'] for i in session['cart'])
     rows = "".join([f"<tr><td>{i['nom']}</td><td>{i['qty']} x {i['narh']}</td></tr>" for i in session['cart']])
@@ -142,7 +143,7 @@ def checkout():
         for _ in range(i['qty']):
             conn.execute('INSERT INTO furushot (nom, narh, sana) VALUES (?,?,?)', (i['nom'], i['narh'], now.strftime('%Y-%m-%d')))
         conn.execute('UPDATE ambor SET miqdor = miqdor - ? WHERE barcode = ?', (i['qty'], i['barcode']))
-    receipt_text += f"------------------\nҶАМЪ: {total} сомонӣ\nТашаккур!"
+    receipt_text += f"------------------\nҶАМЪ: {total} сомонӣ\n"
     with open(os.path.join(CHEK_FOLDER, file_name), "w", encoding="utf-8") as f:
         f.write(receipt_text)
     conn.commit(); conn.close(); session['cart'] = []
@@ -190,7 +191,7 @@ def qabul_form():
     <input name="b" value="{barcode}" readonly>
     <input name="n" value="{t['nom'] if t else ''}" placeholder="Ном" required>
     <input name="p" value="{t['narh'] if t else ''}" placeholder="Нарх" required>
-    <input name="q" type="number" placeholder="Миқдори нав" required autofocus>
+    <input name="q" type="number" placeholder="Миқдор" required autofocus>
     <button type="submit" class="btn b-g">ЗАХИРА</button></form></div>'''
     return render_template_string(HTML_BASE, content=c)
 
@@ -208,4 +209,5 @@ def hisobot():
     return render_template_string(HTML_BASE, content=f'<div class="card"><h3>📊 Фурӯши имрӯз</h3><h2 style="color:green">{total or 0} с.</h2><a href="/" class="btn b-b">БОЗГАШТ</a></div>')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    # Дар APK бояд порти 5000 ва хости 0.0.0.0 бошад
+    app.run(host='0.0.0.0', port=5000, debug=False)
