@@ -1,39 +1,30 @@
 name: Build APK
-
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Get Date
+        id: get-date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Cache Buildozer
+        uses: actions/cache@v3
         with:
-          python-version: '3.9'
+          path: .buildozer
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
-      - name: Install Buildozer and dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential libffi-dev libssl-dev python3-dev
-          sudo apt-get install -y libltdl-dev libncurses5 libncursesw5 zlib1g-dev
-          sudo apt-get install -y autoconf automake libtool pkg-config cmake
-          pip install --upgrade pip
-          pip install buildozer cython==0.29.33
-
-      - name: Build APK with Buildozer
-        run: |
-          # Ин қадам тақрибан 15-20 дақиқа вақт мегирад
-          buildozer android debug
+      - name: Build with Buildozer
+        uses: ArtemSerebrennikov/buildozer-action@v1
+        with:
+          command: buildozer android debug
+          buildozer_version: master
 
       - name: Upload APK
         uses: actions/upload-artifact@v3
         with:
-          name: Mafoza-App-Debug
+          name: Magoza-App-${{ steps.get-date.outputs.date }}
           path: bin/*.apk
