@@ -1,40 +1,39 @@
 [app]
 
-# Номи барнома
-title = Осон фуруш 
+# Номи барнома, ки муштарӣ дар телефони худ мебинад
+title = Magoza POS
 
-# Номи пакет
+# Номи пакет (бе фосила ва ҳарфҳои калон)
 package.name = magozapos
 
 # Домен
-package.domain = org.magoza
+package.domain = org.mafoza
 
-# Папкаи код
+# Суроғаи код
 source.dir = .
 
-# Файлҳое, ки ба APK дохил мешаванд
+# Намуди файлҳо барои дохил кардан
 source.include_exts = py,png,jpg,kv,atlas,db,txt
 
-# Версия
+# Версияи барнома
 version = 1.0
 
-# КИТОБХОНАҲО (Requirements) - ИН ҶОРО ДИҚҚАТ КУНЕД:
-# Мо ҳамаи вобастагиҳои Flask-ро илова кардам
-requirements = python3, flask, sqlite3, jinja2, werkzeug, itsdangerous, click, markupsafe, hostlist
+# КИТОБХОНАҲО (Муҳимтарин қисм барои пешгирии хатогии сурх)
+requirements = python3, flask, sqlite3, jinja2, werkzeug, itsdangerous, click, markupsafe
 
-# Ориентация
+# Иконаи барнома (агар файл бо номи icon.png дошта бошед)
+icon.filename = %(source.dir)s/icon.png
+
+# Ориентацияи экран
 orientation = portrait
 
-# Иҷозатномаҳои Android
+# Иҷозатҳои Android барои камера ва интернет
 android.permissions = INTERNET, CAMERA, NFC, READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE
 
 # Танзимоти API
 android.api = 31
 android.minapi = 21
 android.sdk = 31
-
-# Илова кардани хизматрасонии Flask
-services = 
 
 # Навъи экран
 fullscreen = 0
